@@ -3,11 +3,12 @@ A module for creating .pdf math worksheets
 """
 
 __author__ = 'januschung'
+__editor__ = 'Ahmed4end'
 
 import argparse
 import random
+import re
 from typing import List, Tuple
-
 from fpdf import FPDF
 
 QuestionInfo = Tuple[int, str, int, int]
@@ -19,7 +20,6 @@ class MathWorksheetGenerator:
         self.main_type = type_
         self.max_number = max_number
         self.pdf = FPDF()
-
         self.small_font_size = 10
         self.middle_font_size = 15
         self.large_font_size = 30
@@ -30,8 +30,8 @@ class MathWorksheetGenerator:
         self.num_x_cell = 4
         self.num_y_cell = 2
         self.total_question = 80  # Must be a multiple of 40
-        self.font_1 = 'Times'
-        self.font_2 = 'Arial'
+        self.pdf.add_font(family='arabttype', fname='ar.ttf', uni=True)
+        self.font_1 = 'arabttype'
 
     def generate_question(self) -> QuestionInfo:
         """Generates each question and calculate the answer depending on the type_ in a list
@@ -87,30 +87,30 @@ class MathWorksheetGenerator:
     def print_top_row(self, question_num: str):
         """Helper function to print first character row of a question row"""
         self.pdf.set_font(self.font_1, size=self.middle_font_size)
-        self.pdf.cell(self.pad_size, self.pad_size, txt=question_num, border='LT', align='C')
+        self.pdf.cell(self.pad_size, self.pad_size, txt=self.Arabic(question_num), border='LT', align='C')
         self.pdf.cell(self.size, self.pad_size, border='T', align='C')
         self.pdf.cell(self.size, self.pad_size, border='T', align='C')
         self.pdf.cell(self.pad_size, self.pad_size, border='TR', align='C')
 
     def print_second_row(self, num: int):
         """Helper function to print second character row of a question row"""
-        self.pdf.set_font(self.font_2, size=self.large_font_size)
+        self.pdf.set_font(self.font_1, size=self.large_font_size)
         self.pdf.cell(self.pad_size, self.size, border='L', align='C')
         self.pdf.cell(self.size, self.size, align='C')
-        self.pdf.cell(self.size, self.size, txt=str(num), align='R')
+        self.pdf.cell(self.size, self.size, self.Arabic(txt=str(num)), align='R')
         self.pdf.cell(self.pad_size, self.size, border='R', align='C')
 
     def print_third_row(self, num: int, current_type: str):
         """Helper function to print third character row of a question row"""
-        self.pdf.set_font(self.font_2, size=self.large_font_size)
+        self.pdf.set_font(self.font_1, size=self.large_font_size)
         self.pdf.cell(self.pad_size, self.size, border='L', align='C')
-        self.pdf.cell(self.size, self.size, txt=current_type, align='L')
-        self.pdf.cell(self.size, self.size, txt=str(num), align='R')
+        self.pdf.cell(self.size, self.size, txt=self.Arabic(current_type), align='L')
+        self.pdf.cell(self.size, self.size, txt=self.Arabic(str(num)), align='R')
         self.pdf.cell(self.pad_size, self.size, border='R', align='C')
 
     def print_bottom_row(self):
         """Helper function to print bottom row of question"""
-        self.pdf.set_font(self.font_2, size=self.large_font_size)
+        self.pdf.set_font(self.font_1, size=self.large_font_size)
         self.pdf.cell(self.pad_size, self.size, border='LB', align='C')
         self.pdf.cell(self.size, self.size, border='TB', align='C')
         self.pdf.cell(self.size, self.size, border='TB', align='R')
@@ -156,14 +156,35 @@ class MathWorksheetGenerator:
 
         for i in range(len(data)):
             self.pdf.set_font(self.font_1, size=self.small_font_size)
-            self.pdf.cell(self.pad_size, self.pad_size, txt=f'{i + 1}:', border='TLB', align='R')
-            self.pdf.set_font(self.font_2, size=self.small_font_size)
-            self.pdf.cell(self.pad_size, self.pad_size, txt=str(data[i][3]), border='TB', align='R')
+            self.pdf.cell(self.pad_size, self.pad_size, txt=self.Arabic(f':{i + 1}'), border='TLB', align='R')
+            self.pdf.set_font(self.font_1, size=self.small_font_size)
+            self.pdf.cell(self.pad_size, self.pad_size, txt=self.Arabic(str(data[i][3])), border='TB', align='R')
             self.pdf.cell(self.tiny_pad_size, self.pad_size, border='TRB', align='R')
             self.pdf.cell(self.tiny_pad_size, self.pad_size, align='C')
             if i >= 9 and (i + 1) % 10 == 0:
                 self.pdf.ln()
 
+    def Arabic(self, txt): #En to Ar func
+        translations = {
+                        126: ' ',
+                        123: '}',
+                         125: '{', 
+                         40: ')',
+                         41: '(',
+                         42: '×',
+                         48: '۰',
+                         49: '۱',
+                         50: '۲',
+                         51: '۳',
+                         52: '٤',
+                         53: '٥',
+                         54: '٦',
+                         55: '٧',
+                         56: '۸',
+                         57: '۹',                       
+                         } 
+        txt = re.sub(r"[0-9,]+|[×÷\+-=]", lambda m:(lambda x:x[::-1] if "".join([i for i in x if i!=","]).isdigit()  else x)(m.string[m.start():m.end()]), txt[::-1]) #fix direction [en to ar].
+        return txt.translate(translations)
 
 def main(type_, size):
     """main function"""
